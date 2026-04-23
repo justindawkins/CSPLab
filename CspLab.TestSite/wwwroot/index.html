@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSP Test Lab — Home</title>
+
+  <!--
+    REPORTING ENDPOINTS HEADER (set via server in production)
+    For local testing, update the report-to URL below to match your C# server.
+    Since meta tags can't set Reporting-Endpoints, you'd configure these headers
+    server-side. This page shows what headers you need to set.
+  -->
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #00e5a0;
+      --accent2: #ff4d6d;
+      --accent3: #7b61ff;
+      --text: #e8e8f0;
+      --muted: #5a5a7a;
+      --code-bg: #0d1117;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grid noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,229,160,0.015) 40px, rgba(0,229,160,0.015) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,229,160,0.015) 40px, rgba(0,229,160,0.015) 41px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,15,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.25rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 0.4rem 0.9rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--text);
+      background: var(--border);
+    }
+
+    .nav-links a.active { color: var(--accent); }
+
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      background: rgba(0,229,160,0.08);
+      border: 1px solid rgba(0,229,160,0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      animation: fadeUp 0.4s 0.1s ease both;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin-top: 1.25rem;
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.7;
+      animation: fadeUp 0.4s 0.2s ease both;
+    }
+
+    .status-box {
+      margin-top: 2.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      animation: fadeUp 0.4s 0.3s ease both;
+    }
+
+    .status-box h3 {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .config-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .config-label {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      min-width: 140px;
+      padding-top: 2px;
+    }
+
+    .config-value {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .config-value input {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--accent);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      padding: 0.3rem 0.6rem;
+      width: 300px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .config-value input:focus { border-color: var(--accent); }
+
+    .save-btn {
+      margin-top: 1rem;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .save-btn:hover { opacity: 0.85; }
+
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 2.5rem;
+      animation: fadeUp 0.4s 0.4s ease both;
+    }
+
+    .page-card {
+      background: var(--surface);
+      padding: 1.5rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: background 0.15s;
+      display: block;
+    }
+
+    .page-card:hover { background: #16161f; }
+
+    .page-card-tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.6rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .tag-safe { color: var(--accent); background: rgba(0,229,160,0.08); }
+    .tag-warn { color: #f5a623; background: rgba(245,166,35,0.08); }
+    .tag-fire { color: var(--accent2); background: rgba(255,77,109,0.08); }
+
+    .page-card h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .page-card p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .page-card .arrow {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--accent3);
+      font-family: 'Fira Code', monospace;
+    }
+
+    .header-snippet {
+      margin-top: 3rem;
+      animation: fadeUp 0.4s 0.5s ease both;
+    }
+
+    .header-snippet h3 {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      font-family: 'Fira Code', monospace;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      line-height: 1.7;
+      color: #a0a8c0;
+    }
+
+    .kw { color: #7b61ff; }
+    .str { color: #00e5a0; }
+    .cm { color: #3a3a5a; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">// CSP Test Lab</span>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active">Home</a></li>
+    <li><a href="page2.html">Inline Scripts</a></li>
+    <li><a href="page3.html">External Resources</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+  </ul>
+</nav>
+
+<main>
+  <div class="hero-tag">Content-Security-Policy · Violation Reporter</div>
+  <h1>Test your<br><em>CSP report</em><br>server.</h1>
+  <p class="subtitle">
+    A three-page harness for triggering and observing CSP violations. Configure your report server URL below, then visit each page to fire different violation types.
+  </p>
+
+  <div class="status-box">
+    <h3>// Configuration</h3>
+    <div class="config-row">
+      <span class="config-label">report server url</span>
+      <span class="config-value">
+        <input type="text" id="serverUrl" value="http://localhost:5000/csp-report" placeholder="http://localhost:5000/csp-report" />
+      </span>
+    </div>
+    <div class="config-row">
+      <span class="config-label">this page</span>
+      <span class="config-value" id="statusMsg">No violations — this page is intentionally clean.</span>
+    </div>
+    <button class="save-btn" onclick="saveConfig()">Save</button>
+  </div>
+
+  <div class="pages-grid">
+    <a class="page-card" href="index.html">
+      <span class="page-card-tag tag-safe">Page 1 · Safe</span>
+      <h2>Home</h2>
+      <p>Clean page. No violations. Confirms your server accepts the connection.</p>
+      <div class="arrow">→ You are here</div>
+    </a>
+    <a class="page-card" href="page2.html">
+      <span class="page-card-tag tag-warn">Page 2 · Inline</span>
+      <h2>Inline Scripts</h2>
+      <p>Triggers inline script and inline style violations via <code>unsafe-inline</code> blocks.</p>
+      <div class="arrow">→ page2.html</div>
+    </a>
+    <a class="page-card" href="page3.html">
+      <span class="page-card-tag tag-fire">Page 3 · External</span>
+      <h2>External Resources</h2>
+      <p>Loads scripts and images from disallowed origins to trigger cross-origin violations.</p>
+      <div class="arrow">→ page3.html</div>
+    </a>
+  </div>
+
+  <div class="header-snippet">
+    <h3>// Required HTTP headers (set on your web server)</h3>
+    <pre id="headerSnippet"><span class="cm"># ASP.NET Core Minimal API — add to Program.cs</span>
+
+app.Use(<span class="kw">async</span> (ctx, next) =>
+{
+    <span class="kw">var</span> url = <span class="str">"http://localhost:5000/csp-report"</span>;
+    ctx.Response.Headers.Append(<span class="str">"Reporting-Endpoints"</span>,
+        $<span class="str">"csp-endpoint=\"{url}\""</span>);
+    ctx.Response.Headers.Append(<span class="str">"Content-Security-Policy"</span>,
+        <span class="str">"default-src 'self'; "</span> +
+        <span class="str">"script-src 'self'; "</span> +
+        <span class="str">"style-src 'self' https://fonts.googleapis.com; "</span> +
+        <span class="str">"font-src 'self' https://fonts.gstatic.com; "</span> +
+        <span class="str">"img-src 'self'; "</span> +
+        <span class="str">"report-to csp-endpoint; "</span> +
+        <span class="str">"report-uri /csp-report"</span>);   <span class="cm">// fallback for older browsers</span>
+    <span class="kw">await</span> next();
+});</pre>
+  </div>
+</main>
+
+<footer>csp-test-lab · no violations on this page · open devtools console to confirm</footer>
+
+<script>
+  // Load saved config
+  const saved = localStorage.getItem('cspReportUrl');
+  if (saved) document.getElementById('serverUrl').value = saved;
+
+  function saveConfig() {
+    const url = document.getElementById('serverUrl').value.trim();
+    localStorage.setItem('cspReportUrl', url);
+    document.getElementById('statusMsg').textContent = `Saved: ${url}`;
+    // Update snippet
+    document.getElementById('headerSnippet').innerHTML =
+      document.getElementById('headerSnippet').innerHTML.replace(
+        /http:\/\/localhost:5000\/csp-report/g, url || 'http://localhost:5000/csp-report'
+      );
+  }
+</script>
+</body>
+</html>

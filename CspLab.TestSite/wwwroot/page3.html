@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSP Test Lab — External Resources</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #ff4d6d;
+      --accent2: #00e5a0;
+      --accent3: #7b61ff;
+      --text: #e8e8f0;
+      --muted: #5a5a7a;
+      --code-bg: #0d1117;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Syne', sans-serif; min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,77,109,0.015) 40px, rgba(255,77,109,0.015) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,77,109,0.015) 40px, rgba(255,77,109,0.015) 41px);
+      pointer-events: none;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,15,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .nav-logo { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); }
+    .nav-links { display: flex; gap: 0.25rem; list-style: none; }
+    .nav-links a {
+      display: block; padding: 0.4rem 0.9rem;
+      color: var(--muted); text-decoration: none;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--border); }
+    .nav-links a.active { color: var(--accent); }
+
+    main {
+      position: relative; z-index: 1;
+      max-width: 900px; margin: 0 auto; padding: 4rem 2rem;
+    }
+
+    .page-tag {
+      display: inline-block;
+      font-family: 'Fira Code', monospace; font-size: 0.7rem;
+      color: var(--accent); background: rgba(255,77,109,0.08);
+      border: 1px solid rgba(255,77,109,0.2);
+      padding: 0.25rem 0.75rem; border-radius: 2px;
+      letter-spacing: 0.1em; margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 800;
+      line-height: 1.05; letter-spacing: -0.02em;
+    }
+    h1 em { font-style: normal; color: var(--accent); }
+
+    .subtitle {
+      margin-top: 1.25rem; font-size: 1rem; color: var(--muted);
+      max-width: 520px; line-height: 1.7;
+    }
+
+    /* ── Violation cards ── */
+    .violation-list {
+      margin-top: 2.5rem;
+      display: flex; flex-direction: column; gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+
+    .v-row {
+      background: var(--surface);
+      padding: 1.25rem 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 1.5rem; align-items: center;
+    }
+
+    @media (max-width: 640px) {
+      .v-row { grid-template-columns: 1fr; }
+    }
+
+    .v-info {}
+    .v-label {
+      font-family: 'Fira Code', monospace; font-size: 0.62rem;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      padding: 0.18rem 0.5rem; border-radius: 2px; display: inline-block;
+      margin-bottom: 0.5rem;
+    }
+
+    .label-script-src  { color: var(--accent);  background: rgba(255,77,109,0.1); }
+    .label-img-src     { color: #f5a623;         background: rgba(245,166,35,0.1); }
+    .label-connect-src { color: #a78bfa;         background: rgba(167,139,250,0.1); }
+    .label-frame-src   { color: #34d399;         background: rgba(52,211,153,0.1); }
+    .label-font-src    { color: #60a5fa;         background: rgba(96,165,250,0.1); }
+
+    .v-info h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .v-info p  { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+    .v-url {
+      font-family: 'Fira Code', monospace; font-size: 0.65rem;
+      color: var(--muted); word-break: break-all; line-height: 1.5;
+    }
+    .v-url span { color: var(--accent); }
+
+    .v-actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; }
+
+    .fire-btn {
+      white-space: nowrap;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Fira Code', monospace; font-size: 0.7rem;
+      padding: 0.5rem 1rem; border-radius: 3px; cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .fire-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(255,77,109,0.05); }
+
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); transition: background 0.3s;
+      display: inline-block;
+    }
+    .status-dot.fired { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+    /* ── Nuke all button ── */
+    .nuke-row {
+      margin-top: 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+
+    .nuke-btn {
+      background: rgba(255,77,109,0.1);
+      border: 1px solid rgba(255,77,109,0.3);
+      color: var(--accent);
+      font-family: 'Fira Code', monospace; font-size: 0.72rem;
+      padding: 0.6rem 1.5rem; border-radius: 3px; cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .nuke-btn:hover { background: rgba(255,77,109,0.2); border-color: var(--accent); }
+
+    .nuke-note { font-size: 0.72rem; color: var(--muted); font-family: 'Fira Code', monospace; }
+
+    /* ── Log panel ── */
+    .log-panel {
+      margin-top: 2.5rem;
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+
+    .log-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface);
+    }
+
+    .log-title { font-family: 'Fira Code', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .clear-btn {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      font-family: 'Fira Code', monospace; font-size: 0.62rem; padding: 0.2rem 0.6rem;
+      border-radius: 2px; cursor: pointer; letter-spacing: 0.05em;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .clear-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .log-body {
+      padding: 1rem 1.25rem; min-height: 100px; max-height: 280px; overflow-y: auto;
+      font-family: 'Fira Code', monospace; font-size: 0.68rem; line-height: 1.6; color: #5a5a7a;
+    }
+
+    .log-entry { margin-bottom: 0.5rem; animation: slideIn 0.2s ease both; }
+    .log-entry .ts  { color: #3a3a5a; }
+    .log-entry .dir { color: var(--accent); }
+    .log-entry .blocked { color: #f5a623; }
+    .log-entry .msg { color: #a0a8c0; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Summary panel ── */
+    .summary {
+      margin-top: 2.5rem;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+
+    .stat {
+      background: var(--surface); padding: 1.25rem;
+      text-align: center;
+    }
+    .stat-num { font-size: 2rem; font-weight: 800; color: var(--accent); display: block; }
+    .stat-lbl { font-family: 'Fira Code', monospace; font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    .note-box {
+      margin-top: 2rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent3); border-radius: 6px;
+      padding: 1rem 1.25rem; font-size: 0.78rem; color: var(--muted); line-height: 1.6;
+    }
+    .note-box strong { color: var(--text); }
+    .note-box code { color: var(--accent3); font-family: 'Fira Code', monospace; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">// CSP Test Lab</span>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="page2.html">Inline Scripts</a></li>
+    <li><a href="page3.html" class="active">External Resources</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+  </ul>
+</nav>
+
+<main>
+  <div class="page-tag">Page 3 · External Resource Violations</div>
+  <h1>Fire <em>cross-origin</em><br>violations.</h1>
+  <p class="subtitle">
+    Each row loads or attempts to load a resource from a disallowed external origin.
+    Triggers <code>script-src</code>, <code>img-src</code>, <code>connect-src</code>, and <code>frame-src</code> violations.
+  </p>
+
+  <div class="violation-list">
+
+    <div class="v-row">
+      <div class="v-info">
+        <span class="v-label label-script-src">script-src</span>
+        <h3>External script tag</h3>
+        <p>Injects a <code>&lt;script src="..."&gt;</code> pointing to a disallowed CDN domain.</p>
+      </div>
+      <div class="v-url">blocked: <span>https://cdn.jsdelivr.net/...</span></div>
+      <div class="v-actions">
+        <span class="status-dot" id="dot-script"></span>
+        <button class="fire-btn" onclick="fireExternalScript()">fire()</button>
+      </div>
+    </div>
+
+    <div class="v-row">
+      <div class="v-info">
+        <span class="v-label label-img-src">img-src</span>
+        <h3>External image</h3>
+        <p>Appends an <code>&lt;img&gt;</code> with a <code>src</code> from an external host.</p>
+      </div>
+      <div class="v-url">blocked: <span>https://picsum.photos/...</span></div>
+      <div class="v-actions">
+        <span class="status-dot" id="dot-img"></span>
+        <button class="fire-btn" onclick="fireExternalImage()">fire()</button>
+      </div>
+    </div>
+
+    <div class="v-row">
+      <div class="v-info">
+        <span class="v-label label-connect-src">connect-src</span>
+        <h3>fetch() to external API</h3>
+        <p>Calls <code>fetch()</code> to an external domain, violating <code>connect-src 'self'</code>.</p>
+      </div>
+      <div class="v-url">blocked: <span>https://httpbin.org/get</span></div>
+      <div class="v-actions">
+        <span class="status-dot" id="dot-fetch"></span>
+        <button class="fire-btn" onclick="fireExternalFetch()">fire()</button>
+      </div>
+    </div>
+
+    <div class="v-row">
+      <div class="v-info">
+        <span class="v-label label-frame-src">frame-src</span>
+        <h3>Cross-origin iframe</h3>
+        <p>Injects an <code>&lt;iframe&gt;</code> pointing to an external origin.</p>
+      </div>
+      <div class="v-url">blocked: <span>https://example.com</span></div>
+      <div class="v-actions">
+        <span class="status-dot" id="dot-frame"></span>
+        <button class="fire-btn" onclick="fireExternalFrame()">fire()</button>
+      </div>
+    </div>
+
+    <div class="v-row">
+      <div class="v-info">
+        <span class="v-label label-font-src">font-src</span>
+        <h3>Disallowed font origin</h3>
+        <p>Dynamically injects a <code>@font-face</code> rule loading from an unlisted host.</p>
+      </div>
+      <div class="v-url">blocked: <span>https://fonts.bunny.net/...</span></div>
+      <div class="v-actions">
+        <span class="status-dot" id="dot-font"></span>
+        <button class="fire-btn" onclick="fireExternalFont()">fire()</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="nuke-row">
+    <button class="nuke-btn" onclick="fireAll()">fire_all()</button>
+    <span class="nuke-note">// triggers all 5 violation types at once</span>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="summary">
+    <div class="stat"><span class="stat-num" id="cnt-total">0</span><span class="stat-lbl">total fired</span></div>
+    <div class="stat"><span class="stat-num" id="cnt-events">0</span><span class="stat-lbl">JS events</span></div>
+    <div class="stat"><span class="stat-num" id="cnt-types">0</span><span class="stat-lbl">directives hit</span></div>
+  </div>
+
+  <div class="log-panel">
+    <div class="log-header">
+      <span class="log-title">// securitypolicyviolation events</span>
+      <button class="clear-btn" onclick="clearLog()">clear</button>
+    </div>
+    <div class="log-body" id="logBody">
+      <span style="color:#3a3a5a">Waiting for violations...</span>
+    </div>
+  </div>
+
+  <div class="note-box">
+    <strong>Reminder:</strong> These violations only appear in your C# server if CSP headers are set
+    with <code>report-to</code> / <code>report-uri</code> directives pointing at your server.
+    Set these headers via middleware in your ASP.NET Core app (see the snippet on the home page).
+    The browser queues reports and sends them asynchronously — they are not instant.
+  </div>
+
+</main>
+
+<script>
+  const logBody = document.getElementById('logBody');
+  let logEmpty = true;
+  let totalFired = 0;
+  let eventCount = 0;
+  const directivesHit = new Set();
+
+  function ts() { return new Date().toISOString().split('T')[1].split('Z')[0]; }
+
+  function addLog(directive, blocked, extra) {
+    if (logEmpty) { logBody.innerHTML = ''; logEmpty = false; }
+    const el = document.createElement('div');
+    el.className = 'log-entry';
+    el.innerHTML = `<span class="ts">[${ts()}]</span> <span class="dir">${directive}</span> → <span class="blocked">${blocked}</span> <span class="msg">${extra || ''}</span>`;
+    logBody.prepend(el);
+  }
+
+  function clearLog() {
+    logBody.innerHTML = '<span style="color:#3a3a5a">Log cleared.</span>';
+    logEmpty = true;
+  }
+
+  function updateStats() {
+    document.getElementById('cnt-total').textContent  = totalFired;
+    document.getElementById('cnt-events').textContent = eventCount;
+    document.getElementById('cnt-types').textContent  = directivesHit.size;
+  }
+
+  function markDot(id) {
+    const dot = document.getElementById('dot-' + id);
+    if (dot) dot.classList.add('fired');
+  }
+
+  document.addEventListener('securitypolicyviolation', (e) => {
+    eventCount++;
+    directivesHit.add(e.effectiveDirective);
+    updateStats();
+    addLog(e.effectiveDirective, e.blockedURI || '(inline)', `disposition:${e.disposition}`);
+  });
+
+  function fireExternalScript() {
+    totalFired++; updateStats(); markDot('script');
+    addLog('attempt', 'injecting external script tag', '');
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js';
+    document.body.appendChild(s);
+  }
+
+  function fireExternalImage() {
+    totalFired++; updateStats(); markDot('img');
+    addLog('attempt', 'injecting external image', '');
+    const img = document.createElement('img');
+    img.src = 'https://picsum.photos/1/1?csp-test=' + Date.now();
+    img.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(img);
+  }
+
+  function fireExternalFetch() {
+    totalFired++; updateStats(); markDot('fetch');
+    addLog('attempt', 'fetch() to external origin', '');
+    fetch('https://httpbin.org/get?csp=test', { mode: 'no-cors' })
+      .catch(err => addLog('fetch-error', err.message, ''));
+  }
+
+  function fireExternalFrame() {
+    totalFired++; updateStats(); markDot('frame');
+    addLog('attempt', 'injecting cross-origin iframe', '');
+    const f = document.createElement('iframe');
+    f.src = 'https://example.com';
+    f.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(f);
+    // Remove after a moment to keep DOM clean
+    setTimeout(() => f.remove(), 3000);
+  }
+
+  function fireExternalFont() {
+    totalFired++; updateStats(); markDot('font');
+    addLog('attempt', 'injecting font-face from disallowed origin', '');
+    const s = document.createElement('style');
+    s.textContent = `@font-face {
+      font-family: 'CspTestFont';
+      src: url('https://fonts.bunny.net/archivo/files/archivo-latin-400-normal.woff2') format('woff2');
+    }
+    .csp-font-test { font-family: 'CspTestFont', sans-serif; }`;
+    document.head.appendChild(s);
+    const el = document.createElement('span');
+    el.className = 'csp-font-test';
+    el.textContent = 'font test';
+    el.style.cssText = 'position:absolute;opacity:0;';
+    document.body.appendChild(el);
+  }
+
+  function fireAll() {
+    fireExternalScript();
+    setTimeout(fireExternalImage, 100);
+    setTimeout(fireExternalFetch, 200);
+    setTimeout(fireExternalFrame, 300);
+    setTimeout(fireExternalFont, 400);
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSP Test Lab — Inline Violations</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #f5a623;
+      --accent2: #ff4d6d;
+      --accent3: #7b61ff;
+      --text: #e8e8f0;
+      --muted: #5a5a7a;
+      --code-bg: #0d1117;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(245,166,35,0.015) 40px, rgba(245,166,35,0.015) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(245,166,35,0.015) 40px, rgba(245,166,35,0.015) 41px);
+      pointer-events: none;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,15,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .nav-logo { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); }
+    .nav-links { display: flex; gap: 0.25rem; list-style: none; }
+    .nav-links a {
+      display: block; padding: 0.4rem 0.9rem;
+      color: var(--muted); text-decoration: none;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--border); }
+    .nav-links a.active { color: var(--accent); }
+
+    main {
+      position: relative; z-index: 1;
+      max-width: 900px; margin: 0 auto; padding: 4rem 2rem;
+    }
+
+    .page-tag {
+      display: inline-block;
+      font-family: 'Fira Code', monospace; font-size: 0.7rem;
+      color: var(--accent); background: rgba(245,166,35,0.08);
+      border: 1px solid rgba(245,166,35,0.2);
+      padding: 0.25rem 0.75rem; border-radius: 2px;
+      letter-spacing: 0.1em; margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 800;
+      line-height: 1.05; letter-spacing: -0.02em;
+    }
+    h1 em { font-style: normal; color: var(--accent); }
+
+    .subtitle {
+      margin-top: 1.25rem; font-size: 1rem; color: var(--muted);
+      max-width: 520px; line-height: 1.7;
+    }
+
+    .violation-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden;
+      margin-top: 2.5rem;
+    }
+
+    @media (max-width: 600px) { .violation-grid { grid-template-columns: 1fr; } }
+
+    .v-card {
+      background: var(--surface);
+      padding: 1.5rem;
+    }
+
+    .v-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .v-label {
+      font-family: 'Fira Code', monospace; font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      padding: 0.2rem 0.5rem; border-radius: 2px;
+    }
+
+    .label-inline-script { color: var(--accent); background: rgba(245,166,35,0.1); }
+    .label-inline-style  { color: #a78bfa;       background: rgba(167,139,250,0.1); }
+    .label-eval          { color: var(--accent2); background: rgba(255,77,109,0.1); }
+    .label-handler       { color: #34d399;        background: rgba(52,211,153,0.1); }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted); transition: background 0.3s;
+    }
+    .status-dot.fired { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+    .v-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .v-card p  { font-size: 0.78rem; color: var(--muted); line-height: 1.5; margin-bottom: 1rem; }
+
+    .fire-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      padding: 0.6rem;
+      border-radius: 3px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .fire-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.05); }
+    .fire-btn:active { transform: scale(0.98); }
+
+    .log-panel {
+      margin-top: 2.5rem;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .log-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .log-title {
+      font-family: 'Fira Code', monospace; font-size: 0.7rem;
+      color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    .clear-btn {
+      background: none; border: 1px solid var(--border);
+      color: var(--muted); font-family: 'Fira Code', monospace;
+      font-size: 0.62rem; padding: 0.2rem 0.6rem; border-radius: 2px;
+      cursor: pointer; letter-spacing: 0.05em;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .clear-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    .log-body {
+      padding: 1rem 1.25rem;
+      min-height: 100px; max-height: 280px;
+      overflow-y: auto;
+      font-family: 'Fira Code', monospace; font-size: 0.68rem;
+      line-height: 1.6; color: #5a5a7a;
+    }
+
+    .log-entry {
+      margin-bottom: 0.5rem;
+      animation: slideIn 0.2s ease both;
+    }
+    .log-entry .ts { color: #3a3a5a; }
+    .log-entry .type { color: var(--accent); }
+    .log-entry .msg { color: #a0a8c0; }
+    .log-entry.error .type { color: var(--accent2); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .note-box {
+      margin-top: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent3);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .note-box strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">// CSP Test Lab</span>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="page2.html" class="active">Inline Scripts</a></li>
+    <li><a href="page3.html">External Resources</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+  </ul>
+</nav>
+
+<main>
+  <div class="page-tag">Page 2 · Inline Violations</div>
+  <h1>Fire <em>inline</em><br>violations.</h1>
+  <p class="subtitle">
+    Each button below triggers a different type of inline CSP violation. Watch the log panel and your server's stdout to confirm reports are arriving.
+  </p>
+
+  <div class="violation-grid">
+
+    <!-- Card 1: Inline script via createElement -->
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-label label-inline-script">script-src · inline</span>
+        <span class="status-dot" id="dot1"></span>
+      </div>
+      <h3>Injected &lt;script&gt; tag</h3>
+      <p>Creates a script element with inline code and appends it to the DOM. Violates <code>script-src 'self'</code>.</p>
+      <button class="fire-btn" onclick="fireInlineScript()">fire_violation()</button>
+    </div>
+
+    <!-- Card 2: Inline style via setAttribute -->
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-label label-inline-style">style-src · inline</span>
+        <span class="status-dot" id="dot2"></span>
+      </div>
+      <h3>Injected &lt;style&gt; tag</h3>
+      <p>Appends a <code>&lt;style&gt;</code> element to the <code>&lt;head&gt;</code>. Violates <code>style-src 'self'</code>.</p>
+      <button class="fire-btn" onclick="fireInlineStyle()">fire_violation()</button>
+    </div>
+
+    <!-- Card 3: eval() -->
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-label label-eval">script-src · eval</span>
+        <span class="status-dot" id="dot3"></span>
+      </div>
+      <h3>eval() call</h3>
+      <p>Calls <code>eval()</code> with a string expression. Violates <code>script-src</code> without <code>'unsafe-eval'</code>.</p>
+      <button class="fire-btn" onclick="fireEval()">fire_violation()</button>
+    </div>
+
+    <!-- Card 4: onclick handler -->
+    <div class="v-card">
+      <div class="v-card-header">
+        <span class="v-label label-handler">script-src · handler</span>
+        <span class="status-dot" id="dot4"></span>
+      </div>
+      <h3>setAttribute onclick</h3>
+      <p>Sets an <code>onclick</code> attribute via JavaScript. Treated as inline script by strict CSP.</p>
+      <button class="fire-btn" onclick="fireHandler()">fire_violation()</button>
+    </div>
+
+  </div>
+
+  <div class="log-panel">
+    <div class="log-header">
+      <span class="log-title">// local violation log (SecurityPolicyViolationEvent)</span>
+      <button class="clear-btn" onclick="clearLog()">clear</button>
+    </div>
+    <div class="log-body" id="logBody">
+      <span style="color:#3a3a5a">Waiting for violations... fire one above.</span>
+    </div>
+  </div>
+
+  <div class="note-box">
+    <strong>Note:</strong> These buttons trigger the browser's built-in <code>SecurityPolicyViolationEvent</code>
+    and the Reporting API. The local log below captures the JS event synchronously.
+    Your C# server receives the network report asynchronously — check its stdout or
+    <code>GET /csp-report</code> to confirm delivery. Reports may be batched by the browser.
+  </div>
+</main>
+
+<script>
+  const logBody = document.getElementById('logBody');
+  let logEmpty = true;
+
+  function ts() {
+    return new Date().toISOString().split('T')[1].split('Z')[0];
+  }
+
+  function addLog(type, msg, isError = false) {
+    if (logEmpty) { logBody.innerHTML = ''; logEmpty = false; }
+    const el = document.createElement('div');
+    el.className = 'log-entry' + (isError ? ' error' : '');
+    el.innerHTML = `<span class="ts">[${ts()}]</span> <span class="type">${type}</span> <span class="msg">${msg}</span>`;
+    logBody.prepend(el);
+  }
+
+  function clearLog() {
+    logBody.innerHTML = '<span style="color:#3a3a5a">Log cleared.</span>';
+    logEmpty = true;
+    document.querySelectorAll('.status-dot').forEach(d => d.classList.remove('fired'));
+  }
+
+  // Listen for CSP violation events from THIS page
+  document.addEventListener('securitypolicyviolation', (e) => {
+    addLog(
+      e.effectiveDirective,
+      `blocked: ${e.blockedURI || '(inline)'} | policy: ${e.violatedDirective}`,
+      true
+    );
+  });
+
+  function markDot(id) {
+    const dot = document.getElementById('dot' + id);
+    if (dot) dot.classList.add('fired');
+  }
+
+  function fireInlineScript() {
+    markDot(1);
+    addLog('attempt', 'injecting &lt;script&gt; with inline code...');
+    try {
+      const s = document.createElement('script');
+      s.textContent = 'console.log("CSP blocked this inline script")';
+      document.body.appendChild(s);
+    } catch(e) {
+      addLog('caught', e.message);
+    }
+  }
+
+  function fireInlineStyle() {
+    markDot(2);
+    addLog('attempt', 'injecting &lt;style&gt; tag...');
+    try {
+      const s = document.createElement('style');
+      s.textContent = 'body { outline: 2px solid red; }';
+      document.head.appendChild(s);
+    } catch(e) {
+      addLog('caught', e.message);
+    }
+  }
+
+  function fireEval() {
+    markDot(3);
+    addLog('attempt', 'calling eval()...');
+    try {
+      // eslint-disable-next-line no-eval
+      eval('1 + 1');
+    } catch(e) {
+      addLog('caught', e.message);
+    }
+  }
+
+  function fireHandler() {
+    markDot(4);
+    addLog('attempt', 'setting onclick attribute via setAttribute...');
+    try {
+      const el = document.createElement('div');
+      el.setAttribute('onclick', 'console.log("handler fired")');
+      el.click();
+    } catch(e) {
+      addLog('caught', e.message);
+    }
+  }
+</script>
+
+</body>
+</html>

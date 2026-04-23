@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSP Test Lab — Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0a0a0f; --surface: #111118; --border: #1e1e2e;
+      --accent: #7b61ff; --accent2: #00e5a0; --accent3: #ff4d6d;
+      --text: #e8e8f0; --muted: #5a5a7a; --code-bg: #0d1117;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; }
+
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(123,97,255,0.012) 40px, rgba(123,97,255,0.012) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(123,97,255,0.012) 40px, rgba(123,97,255,0.012) 41px);
+      pointer-events: none;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,15,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); }
+    .nav-links { display: flex; gap: 0.25rem; list-style: none; }
+    .nav-links a {
+      display: block; padding: 0.4rem 0.9rem; color: var(--muted); text-decoration: none;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--border); }
+    .nav-links a.active { color: var(--accent); }
+
+    main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+
+    .page-tag {
+      display: inline-block; font-family: 'Fira Code', monospace; font-size: 0.7rem;
+      color: var(--accent); background: rgba(123,97,255,0.08);
+      border: 1px solid rgba(123,97,255,0.2);
+      padding: 0.25rem 0.75rem; border-radius: 2px; letter-spacing: 0.1em; margin-bottom: 1.5rem;
+    }
+
+    h1 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    h1 em { font-style: normal; color: var(--accent); }
+
+    /* ── Controls bar ── */
+    .controls {
+      display: flex; align-items: center; gap: 0.75rem; margin: 1.5rem 0;
+      flex-wrap: wrap;
+    }
+
+    .pill-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-family: 'Fira Code', monospace; font-size: 0.7rem;
+      padding: 0.4rem 1rem; border-radius: 3px; cursor: pointer;
+      letter-spacing: 0.05em; transition: all 0.15s;
+    }
+    .pill-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pill-btn.danger:hover { border-color: var(--accent3); color: var(--accent3); }
+    .pill-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(0,229,160,0.05); }
+
+    .poll-indicator {
+      font-family: 'Fira Code', monospace; font-size: 0.65rem; color: var(--muted);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .poll-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: background 0.3s;
+    }
+    .poll-dot.live { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:0.4 } }
+
+    /* ── Stats row ── */
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1.5rem;
+    }
+    .stat { background: var(--surface); padding: 1.25rem; }
+    .stat-num { font-size: 2rem; font-weight: 800; color: var(--accent); display: block; font-variant-numeric: tabular-nums; }
+    .stat-lbl { font-family: 'Fira Code', monospace; font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center;
+    }
+    .filter-label { font-family: 'Fira Code', monospace; font-size: 0.65rem; color: var(--muted); }
+    .filter-chip {
+      font-family: 'Fira Code', monospace; font-size: 0.62rem;
+      padding: 0.2rem 0.6rem; border-radius: 2px; cursor: pointer;
+      border: 1px solid var(--border); color: var(--muted); background: transparent;
+      transition: all 0.15s;
+    }
+    .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(123,97,255,0.1); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+    thead tr { background: var(--code-bg); border-bottom: 1px solid var(--border); }
+    th {
+      text-align: left; padding: 0.7rem 1rem;
+      font-family: 'Fira Code', monospace; font-size: 0.62rem; font-weight: 500;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(123,97,255,0.04); }
+    td { padding: 0.65rem 1rem; vertical-align: top; max-width: 0; }
+
+    .cell-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+    .dir-chip {
+      font-family: 'Fira Code', monospace; font-size: 0.6rem; white-space: nowrap;
+      padding: 0.15rem 0.45rem; border-radius: 2px; display: inline-block;
+    }
+    .dir-script-src  { color: #ff4d6d; background: rgba(255,77,109,0.1); }
+    .dir-style-src   { color: #a78bfa; background: rgba(167,139,250,0.1); }
+    .dir-img-src     { color: #f5a623; background: rgba(245,166,35,0.1); }
+    .dir-connect-src { color: #60a5fa; background: rgba(96,165,250,0.1); }
+    .dir-frame-src   { color: #34d399; background: rgba(52,211,153,0.1); }
+    .dir-font-src    { color: #fbbf24; background: rgba(251,191,36,0.1); }
+    .dir-default     { color: var(--muted); background: rgba(90,90,122,0.15); }
+
+    .disp-enforce  { color: #ff4d6d; }
+    .disp-reporting { color: #f5a623; }
+
+    .empty-state {
+      padding: 3rem; text-align: center;
+      font-family: 'Fira Code', monospace; font-size: 0.75rem; color: var(--muted);
+    }
+    .empty-state span { display: block; font-size: 2rem; margin-bottom: 0.75rem; }
+
+    .ts-cell { font-family: 'Fira Code', monospace; color: var(--muted); white-space: nowrap; }
+    .blocked-cell { font-family: 'Fira Code', monospace; color: #a0a8c0; }
+    .doc-cell { font-family: 'Fira Code', monospace; color: var(--muted); }
+
+    .row-new { animation: rowFade 1s ease both; }
+    @keyframes rowFade { from { background: rgba(0,229,160,0.08); } to { background: transparent; } }
+
+    .error-banner {
+      background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.2);
+      border-radius: 6px; padding: 0.75rem 1rem;
+      font-family: 'Fira Code', monospace; font-size: 0.72rem; color: #ff4d6d;
+      margin-bottom: 1rem; display: none;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">// CSP Test Lab</span>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="page2.html">Inline Scripts</a></li>
+    <li><a href="page3.html">External Resources</a></li>
+    <li><a href="dashboard.html" class="active">Dashboard</a></li>
+  </ul>
+</nav>
+
+<main>
+  <div class="page-tag">Live Dashboard · Report Server</div>
+  <h1><em>Violation</em> dashboard.</h1>
+
+  <div class="controls">
+    <button class="pill-btn active" id="pollBtn" onclick="togglePoll()">⏸ pause polling</button>
+    <button class="pill-btn" onclick="fetchNow()">↻ refresh now</button>
+    <button class="pill-btn danger" onclick="clearServer()">✕ clear server</button>
+    <span class="poll-indicator">
+      <span class="poll-dot live" id="pollDot"></span>
+      <span id="pollStatus">polling every 3s</span>
+    </span>
+  </div>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="stats">
+    <div class="stat"><span class="stat-num" id="statTotal">—</span><span class="stat-lbl">total violations</span></div>
+    <div class="stat"><span class="stat-num" id="statDirectives">—</span><span class="stat-lbl">directives hit</span></div>
+    <div class="stat"><span class="stat-num" id="statEnforce">—</span><span class="stat-lbl">enforced</span></div>
+    <div class="stat"><span class="stat-num" id="statReporting">—</span><span class="stat-lbl">report-only</span></div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">filter:</span>
+    <button class="filter-chip active" data-filter="all" onclick="setFilter('all', this)">all</button>
+    <button class="filter-chip" data-filter="script-src" onclick="setFilter('script-src', this)">script-src</button>
+    <button class="filter-chip" data-filter="style-src" onclick="setFilter('style-src', this)">style-src</button>
+    <button class="filter-chip" data-filter="img-src" onclick="setFilter('img-src', this)">img-src</button>
+    <button class="filter-chip" data-filter="connect-src" onclick="setFilter('connect-src', this)">connect-src</button>
+    <button class="filter-chip" data-filter="frame-src" onclick="setFilter('frame-src', this)">frame-src</button>
+    <button class="filter-chip" data-filter="font-src" onclick="setFilter('font-src', this)">font-src</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:130px">time</th>
+          <th style="width:150px">directive</th>
+          <th style="width:80px">disposition</th>
+          <th>blocked url</th>
+          <th>document</th>
+          <th style="width:90px">line:col</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="6"><div class="empty-state"><span>◉</span>No violations yet. Fire some from the test pages.</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  // Choose the report server that matches this page's scheme to avoid mixed-content blocking
+  const REPORT_SERVER = (location.protocol === 'https:') ? 'https://localhost:7000' : 'http://localhost:5000';
+  let allReports = [];
+  let activeFilter = 'all';
+  let polling = true;
+  let pollInterval = null;
+  let knownIds = new Set();
+
+  function dirClass(dir) {
+    if (!dir) return 'dir-default';
+    if (dir.startsWith('script'))  return 'dir-script-src';
+    if (dir.startsWith('style'))   return 'dir-style-src';
+    if (dir.startsWith('img'))     return 'dir-img-src';
+    if (dir.startsWith('connect')) return 'dir-connect-src';
+    if (dir.startsWith('frame'))   return 'dir-frame-src';
+    if (dir.startsWith('font'))    return 'dir-font-src';
+    return 'dir-default';
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3,'0');
+    } catch { return iso; }
+  }
+
+  function fmtUrl(url) {
+    if (!url) return '—';
+    try { return new URL(url).pathname + new URL(url).search; } catch { return url; }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tbody');
+    const filtered = activeFilter === 'all'
+      ? allReports
+      : allReports.filter(r => (r.body?.effectiveDirective || '').startsWith(activeFilter));
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span>◉</span>${
+        activeFilter === 'all' ? 'No violations yet. Fire some from the test pages.' : `No ${activeFilter} violations.`
+      }</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((r, i) => {
+      const b = r.body || {};
+      const dir = b.effectiveDirective || '—';
+      const blocked = b.blockedURL || '(inline)';
+      const doc = fmtUrl(b.documentURL);
+      const disp = b.disposition || 'enforce';
+      const isNew = !knownIds.has(r._id);
+      return `<tr class="${isNew ? 'row-new' : ''}">
+        <td class="ts-cell">${fmtTime(r.receivedAt)}</td>
+        <td><span class="dir-chip ${dirClass(dir)}">${dir}</span></td>
+        <td class="disp-${disp}">${disp}</td>
+        <td class="blocked-cell"><span class="cell-truncate" title="${blocked}">${blocked}</span></td>
+        <td class="doc-cell"><span class="cell-truncate" title="${b.documentURL || ''}">${doc}</span></td>
+        <td class="ts-cell">${b.lineNumber ?? ''}${b.columnNumber != null ? ':' + b.columnNumber : ''}</td>
+      </tr>`;
+    }).join('');
+
+    // Mark all as seen after render
+    filtered.forEach((r, i) => knownIds.add(r._id));
+  }
+
+  function updateStats() {
+    const directives = new Set(allReports.map(r => r.body?.effectiveDirective).filter(Boolean));
+    const enforced  = allReports.filter(r => (r.body?.disposition || 'enforce') === 'enforce').length;
+    const reporting = allReports.filter(r => r.body?.disposition === 'reporting').length;
+    document.getElementById('statTotal').textContent      = allReports.length;
+    document.getElementById('statDirectives').textContent = directives.size;
+    document.getElementById('statEnforce').textContent    = enforced;
+    document.getElementById('statReporting').textContent  = reporting;
+  }
+
+  async function fetchNow() {
+    try {
+      const res = await fetch(`${REPORT_SERVER}/csp-report?count=200`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      // Assign stable ids for new-row animation
+      data.forEach((r, i) => { r._id = r.receivedAt + (r.body?.blockedURL || '') + i; });
+      allReports = data;
+      updateStats();
+      renderTable();
+      hideError();
+    } catch (err) {
+      showError(`Cannot reach report server at ${REPORT_SERVER} — is CspLab.ReportServer running? (${err.message})`);
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorBanner');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideError() {
+    document.getElementById('errorBanner').style.display = 'none';
+  }
+
+  function setFilter(f, el) {
+    activeFilter = f;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderTable();
+  }
+
+  function togglePoll() {
+    polling = !polling;
+    const btn = document.getElementById('pollBtn');
+    const dot = document.getElementById('pollDot');
+    const status = document.getElementById('pollStatus');
+    if (polling) {
+      btn.textContent = '⏸ pause polling';
+      btn.classList.add('active');
+      dot.classList.add('live');
+      status.textContent = 'polling every 3s';
+      startPoll();
+    } else {
+      btn.textContent = '▶ resume polling';
+      btn.classList.remove('active');
+      dot.classList.remove('live');
+      status.textContent = 'paused';
+      clearInterval(pollInterval);
+    }
+  }
+
+  function startPoll() {
+    clearInterval(pollInterval);
+    pollInterval = setInterval(fetchNow, 3000);
+  }
+
+  async function clearServer() {
+    if (!confirm('Clear all violations on the report server?')) return;
+    try {
+      await fetch(`${REPORT_SERVER}/csp-report`, { method: 'DELETE' });
+      allReports = [];
+      knownIds.clear();
+      updateStats();
+      renderTable();
+    } catch (err) {
+      showError(`Clear failed: ${err.message}`);
+    }
+  }
+
+  // Init
+  fetchNow();
+  startPoll();
+</script>
+</body>
+</html>
