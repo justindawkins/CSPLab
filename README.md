@@ -42,3 +42,6 @@ The report server runs silently at http://localhost:5000.
   or on page navigation. The dashboard polls every 3 seconds.
 - Both `report-to` (Reporting API) and `report-uri` (legacy fallback) are set in the CSP header.
 - To swap in a persistent store, implement `ICspViolationStore` and register it in `ReportServer/Program.cs`.
+
+
+<img width="1857" height="1370" alt="image" src="https://github.com/user-attachments/assets/13d7c3d5-37c1-4abf-b221-fd3457b5b5fb" />
